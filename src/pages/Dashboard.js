@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { getPendingUsers, approveUser, getPayments, makePayment, getLoans, requestLoan, updateLoan } from '../services/api';
+import { getPendingUsers, approveUser, getPayments, makePayment, getLoans, requestLoan, updateLoan, getCurrentAmount } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -10,6 +10,7 @@ const Dashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loans, setLoans] = useState([]);
+  const [currentAmount, setCurrentAmount] = useState(null);
   const [formData, setFormData] = useState({ loanAmount: '', loanReason: '', paymentMonth: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -18,14 +19,27 @@ const Dashboard = () => {
     try {
       if (role === 'admin') {
         const usersRes = await getPendingUsers();
-        setPendingUsers(usersRes.data);
+        setPendingUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
       }
       const paymentsRes = await getPayments();
-      setPayments(paymentsRes.data);
+      const paymentsData = Array.isArray(paymentsRes.data.payments) ? paymentsRes.data.payments : [];
+      setPayments(paymentsData);
       const loansRes = await getLoans();
-      setLoans(loansRes.data);
+      setLoans(Array.isArray(loansRes.data) ? loansRes.data : []);
+      // Fetch current amount for staff or admin
+      const amountRes = await getCurrentAmount();
+      console.log('Current Amount API Response:', amountRes.data);
+      setCurrentAmount(amountRes.data.amount || 600);
+      console.log('Current Amount:', amountRes.data.amount || 600);
+      console.log('Payments API Response:', paymentsRes.data);
     } catch (err) {
-      setError('Failed to fetch data');
+      console.error('Fetch Data Error:', err.response || err);
+      const errorMsg = err.response?.data?.error || err.response?.data?.msg || 'Failed to fetch data';
+      setError(errorMsg);
+      setPayments([]);
+      setLoans([]);
+      setCurrentAmount(600);
+      if (role === 'admin') setPendingUsers([]);
     }
   }, [role]);
 
@@ -35,9 +49,15 @@ const Dashboard = () => {
       navigate('/login');
       return;
     }
-    const user = jwtDecode(token).user;
-    setRole(user.role);
-    fetchData();
+    try {
+      const user = jwtDecode(token).user;
+      setRole(user.role);
+      fetchData();
+    } catch (err) {
+      console.error('Token Decode Error:', err.stack);
+      setError('Invalid token, please log in again');
+      navigate('/login');
+    }
   }, [navigate, fetchData]);
 
   const handleApproveUser = async (id) => {
@@ -45,7 +65,7 @@ const Dashboard = () => {
       await approveUser(id);
       fetchData();
     } catch (err) {
-      setError('Failed to approve user');
+      setError(err.response?.data?.msg || 'Failed to approve user');
     }
   };
 
@@ -55,12 +75,16 @@ const Dashboard = () => {
       setError('Month is required');
       return;
     }
+    if (!currentAmount) {
+      setError('Payment amount not available');
+      return;
+    }
     try {
-      await makePayment({ amount: 600, month: formData.paymentMonth });
+      await makePayment({ amount: currentAmount, month: formData.paymentMonth });
       setFormData({ ...formData, paymentMonth: '' });
       fetchData();
     } catch (err) {
-      setError('Payment failed');
+      setError(err.response?.data?.msg || 'Payment failed');
     }
   };
 
@@ -79,7 +103,7 @@ const Dashboard = () => {
       setFormData({ ...formData, loanAmount: '', loanReason: '' });
       fetchData();
     } catch (err) {
-      setError('Loan request failed');
+      setError(err.response?.data?.msg || 'Loan request failed');
     }
   };
 
@@ -88,7 +112,7 @@ const Dashboard = () => {
       await updateLoan(id, status);
       fetchData();
     } catch (err) {
-      setError('Loan update failed');
+      setError(err.response?.data?.msg || 'Loan update failed');
     }
   };
 
@@ -123,7 +147,9 @@ const Dashboard = () => {
                         placeholder="Enter month"
                       />
                     </div>
-                    <button type="submit" className="btn btn-success">Pay ₹600</button>
+                    <button type="submit" className="btn btn-success" disabled={currentAmount === null}>
+                      Pay ₹{currentAmount !== null ? currentAmount : 'Loading...'}
+                    </button>
                   </form>
                 </div>
               </div>

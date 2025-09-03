@@ -175,14 +175,14 @@ const Users = () => {
                                     disabled={loading}
                                     title="Approve"
                                   >
-✅                                  </button>
+Approve                                  </button>
                                   <button
                                     className="btn btn-sm btn-danger me-1"
                                     onClick={() => handleRejectUser(user._id)}
                                     disabled={loading}
                                     title="Reject"
                                   >
-                                  ❌</button>
+                                  Reject</button>
                                 </>
                               )}
                               <i
@@ -190,13 +190,13 @@ const Users = () => {
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => handleShowUpdate(user)}
                                 title="Edit"
-                              >✎</i>
+                              >Edit</i>
                               <i
                                 className="btn btn-sm btn-danger me-1"
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => handleShowDelete(user)}
                                 title="Delete"
-                              >🗑</i>
+                              >Delete</i>
                             </td>
                           </tr>
                         ))}

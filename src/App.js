@@ -3,6 +3,10 @@ import Login from './pages/login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
+import Payments from './pages/Payments';
+import Amount from './pages/Amount';
+import Loans from './pages/Loans';
+import InterestRate from './pages/InterestRate';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
 
 
@@ -14,6 +18,10 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/users" element={<Users />} />
+        <Route path="/amounts" element={<Amount />} />
+        <Route path="/loans" element={<Loans />} />
+        <Route path="/payments" element={<Payments />} />
+        <Route path="/interest-rates" element={<InterestRate />} />
         {/* Add other routes as needed */}
         <Route path="/" element={<Login />} />
       </Routes>
