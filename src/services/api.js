@@ -29,6 +29,7 @@ export const getLoans = (page, limit) => API.get(`/loans?page=${page}&limit=${li
 export const requestLoan = (data) => API.post('/loans', data);
 export const updateLoan = (id, status) => API.put(`/loans/${id}`, { status });
 export const deleteLoan = (id) => API.delete(`/loans/${id}`);
+export const getLoanDetails = (id) => API.get(`loans/${id}`);
 
 // In ../services/api.js
 export const getCurrentAmount = () => API.get('/amounts/current');
@@ -37,7 +38,21 @@ export const addAmount = (data) => API.post('/amounts', data);
 export const updateAmount = (id, data) => API.put(`/amounts/${id}`, data);
 export const deleteAmount = (id) => API.delete(`/amounts/${id}`);
 
+
 export const addInterestRate = (data) => API.post(`/interest-rates`);
 export const getInterestRates = () => API.get(`/interest-rates`);
 export const updateInterestRate = (id, data) => API.put(`/interest-rates/${id}`);
 export const deleteInterestRate = (id) => API.delete(`/interest-rates/${id}`);
+
+
+export const getNotices = () => API.get('/notices');
+export const addNotice = (data) => API.post('/notices', data);
+export const updateNotice = (id, data) => API.put(`/notices/${id}`, data);
+export const deleteNotice = (id) => API.delete(`/notices/${id}`);
+
+export const getMeetings = () => API.get('/meetings');
+export const addMeeting = (data) => API.post('/meetings', data);  
+export const updateMeeting = (id, data) => API.put(`/meetings/${id}`, data);
+export const deleteMeeting = (id) => API.delete(`/meetings/${id}`);
+
+export default API;

@@ -85,6 +85,38 @@ const Sidebar = ({ role }) => {
               </span>
             )}
           </li>
+                    <li className="nav-item relative group">
+            <NavLink
+              to="/notice"
+              className={({ isActive }) => `nav-link flex items-center gap-2 ${
+                isActive ? 'active text-primary fw-bold' : 'text-dark'
+              }`}
+            >
+              <FaMoneyBill className="text-lg" />
+              {!isCollapsed && <span>Notice</span>}
+            </NavLink>
+            {isCollapsed && (
+              <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                Notice
+              </span>
+            )}
+          </li>
+                    <li className="nav-item relative group">
+            <NavLink
+              to="/meeting"
+              className={({ isActive }) => `nav-link flex items-center gap-2 ${
+                isActive ? 'active text-primary fw-bold' : 'text-dark'
+              }`}
+            >
+              <FaMoneyBill className="text-lg" />
+              {!isCollapsed && <span>meeting</span>}
+            </NavLink>
+            {isCollapsed && (
+              <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                meeting
+              </span>
+            )}
+          </li>
           <li className="nav-item relative group">
             <NavLink
               to="/payments"

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { getLoans, updateLoan, deleteLoan } from '../services/api';
 import Header from './Header';
@@ -16,7 +16,7 @@ const Loans = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState(null);
-  const [formData, setFormData] = useState({ status: 'pending' });
+  const [formData, setFormData] = useState({ status: 'pending', interestRate: '', duration: '' });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -50,29 +50,62 @@ const Loans = () => {
     }
   }, [navigate, fetchLoans]);
 
+  useEffect(() => {
+    console.log('formData changed:', formData);
+  }, [formData]);
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
 
   const handleShowUpdate = (loan) => {
     setSelectedLoan(loan);
-    setFormData({ status: loan.status });
+    // Handle case where loan.status is an object or invalid
+    let initialStatus = 'pending';
+    if (typeof loan.status === 'string' && ['approved', 'rejected', 'pending'].includes(loan.status.toLowerCase())) {
+      initialStatus = loan.status.toLowerCase();
+    } else if (typeof loan.status === 'object' && loan.status !== null && typeof loan.status.status === 'string') {
+      initialStatus = ['approved', 'rejected', 'pending'].includes(loan.status.status.toLowerCase())
+        ? loan.status.status.toLowerCase()
+        : 'pending';
+    }
+    setFormData({
+      status: initialStatus,
+      interestRate: (typeof loan.status === 'object' && loan.status !== null && loan.status.interestRate) || loan.interestRate || '',
+      duration: (typeof loan.status === 'object' && loan.status !== null && loan.status.duration) || loan.duration || '',
+    });
     setFormError('');
     setShowUpdateModal(true);
   };
 
+  const handleCloseUpdateModal = () => {
+    setShowUpdateModal(false);
+    setFormData({ status: 'pending', interestRate: '', duration: '' });
+    setFormError('');
+  };
+
   const handleUpdate = async (e) => {
     e.preventDefault();
-    if (!formData.status) {
-      setFormError('Status is required');
+    const validStatuses = ['approved', 'rejected', 'pending'];
+    if (!formData.status || typeof formData.status !== 'string' || !validStatuses.includes(formData.status)) {
+      console.error('Invalid status in formData:', formData.status);
+      setFormError('Please select a valid status (Pending, Approved, or Rejected)');
       return;
     }
     setLoading(true);
+    const payload = {
+      status: formData.status,
+      ...(formData.interestRate && { interestRate: parseFloat(formData.interestRate) }),
+      ...(formData.duration && { duration: parseInt(formData.duration, 10) }),
+    };
+    console.log('Sending updateLoan request:', payload);
     try {
-      await updateLoan(selectedLoan._id, formData.status);
-      setShowUpdateModal(false);
+      const response = await updateLoan(selectedLoan._id, payload);
+      console.log('Update Loan Response:', response.data);
+      handleCloseUpdateModal();
       fetchLoans();
     } catch (err) {
+      console.error('Update Loan Error:', err.response?.data);
       setFormError(err.response?.data?.msg || 'Failed to update loan');
     } finally {
       setLoading(false);
@@ -99,10 +132,14 @@ const Loans = () => {
 
   const handleApproveLoan = async (id) => {
     setLoading(true);
+    const payload = { status: 'approved' };
+    console.log('Sending approveLoan request:', payload);
     try {
-      await updateLoan(id, 'approved');
+      const response = await updateLoan(id, payload);
+      console.log('Approve Loan Response:', response.data);
       fetchLoans();
     } catch (err) {
+      console.error('Approve Loan Error:', err.response?.data);
       setError(err.response?.data?.msg || 'Failed to approve loan');
     } finally {
       setLoading(false);
@@ -111,10 +148,14 @@ const Loans = () => {
 
   const handleRejectLoan = async (id) => {
     setLoading(true);
+    const payload = { status: 'rejected' };
+    console.log('Sending rejectLoan request:', payload);
     try {
-      await updateLoan(id, 'rejected');
+      const response = await updateLoan(id, payload);
+      console.log('Reject Loan Response:', response.data);
       fetchLoans();
     } catch (err) {
+      console.error('Reject Loan Error:', err.response?.data);
       setError(err.response?.data?.msg || 'Failed to reject loan');
     } finally {
       setLoading(false);
@@ -150,8 +191,12 @@ const Loans = () => {
                         {role === 'admin' && <th>User</th>}
                         <th>Amount (₹)</th>
                         <th>Reason</th>
+                        <th>Interest Rate (%)</th>
+                        <th>Duration (Months)</th>
+                        <th>Total Payable (₹)</th>
                         <th>Status</th>
                         <th>Date</th>
+                        <th>Details</th>
                         {role === 'admin' && <th>Actions</th>}
                       </tr>
                     </thead>
@@ -161,12 +206,20 @@ const Loans = () => {
                           {role === 'admin' && <td>{loan.user?.name || 'Unknown'}</td>}
                           <td>{loan.amount}</td>
                           <td>{loan.reason}</td>
+                          <td>{loan.interestRate || 'N/A'}</td>
+                          <td>{loan.duration || 'N/A'}</td>
+                          <td>{loan.totalAmountPayable ? loan.totalAmountPayable.toFixed(2) : 'N/A'}</td>
                           <td>
                             <span className={`badge bg-${loan.status === 'approved' ? 'success' : loan.status === 'rejected' ? 'danger' : 'warning'} text-white`}>
                               {loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
                             </span>
                           </td>
                           <td>{new Date(loan.date).toLocaleDateString()}</td>
+                          <td>
+                            <Link to={`/loans/${loan._id}`} className="btn btn-sm btn-info">
+                              View Details
+                            </Link>
+                          </td>
                           {role === 'admin' && (
                             <td>
                               {loan.status === 'pending' && (
@@ -235,6 +288,7 @@ const Loans = () => {
         {/* Update Modal */}
         {showUpdateModal && role === 'admin' && (
           <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1" role="dialog">
+            {console.log('Current formData:', formData)}
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
@@ -242,7 +296,7 @@ const Loans = () => {
                   <button
                     type="button"
                     className="btn-close"
-                    onClick={() => setShowUpdateModal(false)}
+                    onClick={handleCloseUpdateModal}
                     disabled={loading}
                   ></button>
                 </div>
@@ -262,6 +316,31 @@ const Loans = () => {
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>
                       </select>
+                    </div>
+                    <div className="mb-3">
+                      <label htmlFor="interestRate" className="form-label">Interest Rate (%)</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        id="interestRate"
+                        value={formData.interestRate}
+                        onChange={(e) => setFormData({ ...formData, interestRate: e.target.value })}
+                        min="0"
+                        step="0.1"
+                        placeholder="Enter interest rate (optional)"
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label htmlFor="duration" className="form-label">Duration (Months)</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        id="duration"
+                        value={formData.duration}
+                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                        min="1"
+                        placeholder="Enter duration in months (optional)"
+                      />
                     </div>
                     <button type="submit" className="btn btn-primary" disabled={loading}>
                       {loading ? 'Updating...' : 'Update'}

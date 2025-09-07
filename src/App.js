@@ -7,6 +7,9 @@ import Payments from './pages/Payments';
 import Amount from './pages/Amount';
 import Loans from './pages/Loans';
 import InterestRate from './pages/InterestRate';
+import LoanDetails from './pages/LoanDetails';
+import Meetings from './pages/Meetings';
+import Notices from './pages/Notices';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
 
 
@@ -21,7 +24,10 @@ function App() {
         <Route path="/amounts" element={<Amount />} />
         <Route path="/loans" element={<Loans />} />
         <Route path="/payments" element={<Payments />} />
+        <Route path="/loans/:id" element={<LoanDetails />} />
         <Route path="/interest-rates" element={<InterestRate />} />
+        <Route path='/meeting' element={<Meetings />} />
+        <Route path='/notice' element={<Notices />} />
         {/* Add other routes as needed */}
         <Route path="/" element={<Login />} />
       </Routes>
