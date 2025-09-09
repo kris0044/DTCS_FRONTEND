@@ -6,136 +6,137 @@ const Sidebar = ({ role }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className={`bg-light border-end ${isCollapsed ? 'w-10' : 'w-64'} transition-all duration-300 h-screen fixed top-0 left-0 overflow-y-auto`}>
-      <div className="p-3">
-        <button
-          className="btn btn-outline-primary w-full mb-3"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
-          {isCollapsed ? '☰' : '✕'}
-        </button>
-        <ul className="nav flex-column">
-          
-            <li className="nav-item relative group">
+    <>
+      <style>
+        {`
+          .sidebar-custom {
+            height: 100vh !important; /* Explicitly enforce full height */
+          }
+          .sidebar-custom .sidebar-item {
+            transition: all 0.3s ease;
+          }
+          .sidebar-custom .sidebar-item:hover {
+            background-color: #f0f0f0;
+          }
+          .sidebar-custom .sidebar-item.active {
+            background-color: #e9ecef;
+            color: #000;
+          }
+          .sidebar-custom .sidebar-collapsed .sidebar-item {
+            padding: 8px 0;
+            min-width: 40px;
+            justify-content: center;
+          }
+          .sidebar-custom .sidebar-collapsed .sidebar-item span {
+            display: none;
+          }
+          .sidebar-custom .sidebar-collapsed .sidebar-item:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #f0f0f0;
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            margin-left: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+          }
+          .sidebar-custom .sidebar-collapsed .sidebar-item:hover::after {
+            opacity: 1;
+          }
+        `}
+      </style>
+      <div className={`sidebar-custom ${isCollapsed ? 'sidebar-collapsed w-12' : 'w-64'} bg-light text-dark border-end transition-all duration-300 h-screen fixed top-0 left-0 overflow-y-auto`}>
+        <div className="p-3">
+          <button
+            className="btn btn-outline-primary w-full mb-3"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            {isCollapsed ? '☰' : '✕'}
+          </button>
+          <ul className="list-unstyled">
+            <li className="sidebar-item relative mb-2">
               <NavLink
                 to="/Dashboard"
-                className={({ isActive }) => `nav-link flex items-center gap-2 ${
-                  isActive ? 'active text-primary fw-bold' : 'text-dark'
-                }`}
+                className={({ isActive }) => `flex items-center gap-2 p-2 text-dark hover:text-dark w-full ${isActive ? 'active' : ''}`}
+                style={{ textDecoration: 'none' }}
               >
                 <FaHome className="text-lg" />
-                {!isCollapsed && <span>Dashboard</span>}
+                {!isCollapsed && <span className="text-base">Dashboard</span>}
               </NavLink>
-              {isCollapsed && (
-                <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                  Dashboard
-                </span>
-              )}
             </li>
-         
-          {role === 'admin' && (
-            <li className="nav-item relative group">
-              <NavLink
-                to="/users"
-                className={({ isActive }) => `nav-link flex items-center gap-2 ${
-                  isActive ? 'active text-primary fw-bold' : 'text-dark'
-                }`}
-              >
-                <FaUsers className="text-lg" />
-                {!isCollapsed && <span>Users</span>}
-              </NavLink>
-              {isCollapsed && (
-                <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                  Users
-                </span>
-              )}
-            </li>
-          )}
             {role === 'admin' && (
-            <li className="nav-item relative group">
+              <li className="sidebar-item relative mb-2">
+                <NavLink
+                  to="/users"
+                  className={({ isActive }) => `flex items-center gap-2 p-2 text-dark hover:text-dark w-full ${isActive ? 'active' : ''}`}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <FaUsers className="text-lg" />
+                  {!isCollapsed && <span className="text-base">Users</span>}
+                </NavLink>
+              </li>
+            )}
+            {role === 'admin' && (
+              <li className="sidebar-item relative mb-2">
+                <NavLink
+                  to="/amounts"
+                  className={({ isActive }) => `flex items-center gap-2 p-2 text-dark hover:text-dark w-full ${isActive ? 'active' : ''}`}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <FaMoneyBill className="text-lg" />
+                  {!isCollapsed && <span className="text-base">Amounts</span>}
+                </NavLink>
+              </li>
+            )}
+            <li className="sidebar-item relative mb-2">
               <NavLink
-                to="/amounts"
-                className={({ isActive }) => `nav-link flex items-center gap-2 ${
-                  isActive ? 'active text-primary fw-bold' : 'text-dark'
-                }`}
+                to="/loans"
+                className={({ isActive }) => `flex items-center gap-2 p-2 text-dark hover:text-dark w-full ${isActive ? 'active' : ''}`}
+                style={{ textDecoration: 'none' }}
               >
-                <FaUsers className="text-lg" />
-                {!isCollapsed && <span>amounts</span>}
+                <FaMoneyBill className="text-lg" />
+                {!isCollapsed && <span className="text-base">Loans</span>}
               </NavLink>
-              {isCollapsed && (
-                <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                  amounts
-                </span>
-              )}
             </li>
-          )}
-          <li className="nav-item relative group">
-            <NavLink
-              to="/loans"
-              className={({ isActive }) => `nav-link flex items-center gap-2 ${
-                isActive ? 'active text-primary fw-bold' : 'text-dark'
-              }`}
-            >
-              <FaMoneyBill className="text-lg" />
-              {!isCollapsed && <span>Loans</span>}
-            </NavLink>
-            {isCollapsed && (
-              <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                Loans
-              </span>
-            )}
-          </li>
-                    <li className="nav-item relative group">
-            <NavLink
-              to="/notice"
-              className={({ isActive }) => `nav-link flex items-center gap-2 ${
-                isActive ? 'active text-primary fw-bold' : 'text-dark'
-              }`}
-            >
-              <FaMoneyBill className="text-lg" />
-              {!isCollapsed && <span>Notice</span>}
-            </NavLink>
-            {isCollapsed && (
-              <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                Notice
-              </span>
-            )}
-          </li>
-                    <li className="nav-item relative group">
-            <NavLink
-              to="/meeting"
-              className={({ isActive }) => `nav-link flex items-center gap-2 ${
-                isActive ? 'active text-primary fw-bold' : 'text-dark'
-              }`}
-            >
-              <FaMoneyBill className="text-lg" />
-              {!isCollapsed && <span>meeting</span>}
-            </NavLink>
-            {isCollapsed && (
-              <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                meeting
-              </span>
-            )}
-          </li>
-          <li className="nav-item relative group">
-            <NavLink
-              to="/payments"
-              className={({ isActive }) => `nav-link flex items-center gap-2 ${
-                isActive ? 'active text-primary fw-bold' : 'text-dark'
-              }`}
-            >
-              <FaCreditCard className="text-lg" />
-              {!isCollapsed && <span>Payments</span>}
-            </NavLink>
-            {isCollapsed && (
-              <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                Payments
-              </span>
-            )}
-          </li>
-        </ul>
+            <li className="sidebar-item relative mb-2">
+              <NavLink
+                to="/notice"
+                className={({ isActive }) => `flex items-center gap-2 p-2 text-dark hover:text-dark w-full ${isActive ? 'active' : ''}`}
+                style={{ textDecoration: 'none' }}
+              >
+                <FaMoneyBill className="text-lg" />
+                {!isCollapsed && <span className="text-base">Notice</span>}
+              </NavLink>
+            </li>
+            <li className="sidebar-item relative mb-2">
+              <NavLink
+                to="/meeting"
+                className={({ isActive }) => `flex items-center gap-2 p-2 text-dark hover:text-dark w-full ${isActive ? 'active' : ''}`}
+                style={{ textDecoration: 'none' }}
+              >
+                <FaMoneyBill className="text-lg" />
+                {!isCollapsed && <span className="text-base">Meeting</span>}
+              </NavLink>
+            </li>
+            <li className="sidebar-item relative mb-2">
+              <NavLink
+                to="/payments"
+                className={({ isActive }) => `flex items-center gap-2 p-2 text-dark hover:text-dark w-full ${isActive ? 'active' : ''}`}
+                style={{ textDecoration: 'none' }}
+              >
+                <FaCreditCard className="text-lg" />
+                {!isCollapsed && <span className="text-base">Payments</span>}
+              </NavLink>
+            </li>
+          </ul>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

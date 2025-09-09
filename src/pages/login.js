@@ -32,47 +32,59 @@ const Login = () => {
   };
 
   return (
-    <div className="container mt-5 pt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-4">
-          <div className="card shadow">
-            <div className="card-body">
-              <h2 className="card-title text-center mb-4">Login</h2>
-              {error && <div className="alert alert-danger">{error}</div>}
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label htmlFor="email" className="form-label">Email</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Enter your email"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="password" className="form-label">Password</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Enter your password"
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary w-100">Login</button>
-              </form>
-              <p className="text-center mt-3">
-                Don't have an account? <a href="/register">Register here</a>
-              </p>
-            </div>
+    <div className="min-vh-100 bg-primary d-flex align-items-center justify-content-center p-4" style={{ backgroundColor: '#3097ffa5' }}>
+      <form onSubmit={handleSubmit} className="card shadow-lg p-4" style={{ borderRadius: '20px', maxWidth: '400px', width: '100%', transform: 'translateY(-50px)', backgroundColor: '#3097ffa5' }}>
+        <div className="text-center mb-4">
+          <div className="bg-secondary rounded-circle mx-auto" style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg className="text-white" width="48" height="48" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+            </svg>
           </div>
         </div>
-      </div>
+        <h2 className="text-center text-white mb-4">LOGIN</h2>
+        {error && <div className="alert alert-danger text-center">{error}</div>}
+        <div className="mb-3">
+          <label htmlFor="email" className="form-label text-white">USERNAME</label>
+          <input
+            type="email"
+            className="form-control"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="Enter your username"
+          />
+        </div>
+        <div className="mb-3">
+          <label htmlFor="password" className="form-label text-white">PASSWORD</label>
+          <input
+            type="password"
+            className="form-control"
+            id="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Enter your password"
+          />
+        </div>
+        <div className="mb-2 form-check">
+         
+        </div>
+        <button
+          type="submit"
+          className="btn w-100 mb-3"
+          style={{ backgroundColor: '#3498db', color: '#fff', borderRadius: '10px', padding: '10px', fontSize: '1rem', transition: 'background-color 0.3s' }}
+          onMouseOver={(e) => (e.target.style.backgroundColor = '#00d9ffff')}
+          onMouseOut={(e) => (e.target.style.backgroundColor = '#00d9ffff')}
+        >
+          LOGIN
+        </button>
+        <p className="text-center text-white mb-2">
+        </p>
+        <p className="text-center text-info">
+          Not a member? <a href="/register" className="text-white fw-bold">CREATE ACCOUNT</a>
+        </p>
+      </form>
     </div>
   );
 };
