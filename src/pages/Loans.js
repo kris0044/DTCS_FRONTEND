@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import { getLoans, updateLoan, deleteLoan } from '../services/api';
+import { getLoans, updateLoan, deleteLoan, requestLoan } from '../services/api'; // Added requestLoan
 import Header from './Header';
 import Sidebar from './Sidebar';
 
@@ -16,7 +16,13 @@ const Loans = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState(null);
-  const [formData, setFormData] = useState({ status: 'pending', interestRate: '', duration: '' });
+  const [formData, setFormData] = useState({
+    status: 'pending',
+    interestRate: '',
+    duration: '',
+    loanAmount: '', // Added for loan request
+    loanReason: '', // Added for loan request
+  });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -60,7 +66,6 @@ const Loans = () => {
 
   const handleShowUpdate = (loan) => {
     setSelectedLoan(loan);
-    // Handle case where loan.status is an object or invalid
     let initialStatus = 'pending';
     if (typeof loan.status === 'string' && ['approved', 'rejected', 'pending'].includes(loan.status.toLowerCase())) {
       initialStatus = loan.status.toLowerCase();
@@ -70,6 +75,7 @@ const Loans = () => {
         : 'pending';
     }
     setFormData({
+      ...formData,
       status: initialStatus,
       interestRate: (typeof loan.status === 'object' && loan.status !== null && loan.status.interestRate) || loan.interestRate || '',
       duration: (typeof loan.status === 'object' && loan.status !== null && loan.status.duration) || loan.duration || '',
@@ -80,7 +86,7 @@ const Loans = () => {
 
   const handleCloseUpdateModal = () => {
     setShowUpdateModal(false);
-    setFormData({ status: 'pending', interestRate: '', duration: '' });
+    setFormData({ ...formData, status: 'pending', interestRate: '', duration: '' });
     setFormError('');
   };
 
@@ -162,6 +168,28 @@ const Loans = () => {
     }
   };
 
+  const handleRequestLoan = async (e) => {
+    e.preventDefault();
+    if (!formData.loanAmount || !formData.loanReason) {
+      setFormError('All loan fields are required');
+      return;
+    }
+    if (formData.loanAmount <= 0) {
+      setFormError('Loan amount must be positive');
+      return;
+    }
+    setLoading(true);
+    try {
+      await requestLoan({ amount: formData.loanAmount, reason: formData.loanReason });
+      setFormData({ ...formData, loanAmount: '', loanReason: '' });
+      fetchLoans();
+    } catch (err) {
+      setFormError(err.response?.data?.msg || 'Loan request failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
@@ -177,6 +205,47 @@ const Loans = () => {
         <div className="container mt-4">
           <h2 className="mb-4">Loan Management</h2>
           {error && <div className="alert alert-danger">{error}</div>}
+
+          {/* Request Loan Section for Staff */}
+          {role === 'staff' && (
+            <div className="card mb-4 shadow">
+              <div className="card-body">
+                <h3 className="card-title">Request Loan</h3>
+                {formError && <div className="alert alert-danger">{formError}</div>}
+                <form onSubmit={handleRequestLoan}>
+                  <div className="mb-3">
+                    <label htmlFor="loanAmount" className="form-label">Amount (₹)</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      id="loanAmount"
+                      name="loanAmount"
+                      value={formData.loanAmount}
+                      onChange={(e) => setFormData({ ...formData, loanAmount: e.target.value })}
+                      placeholder="Enter amount"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="loanReason" className="form-label">Reason</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="loanReason"
+                      name="loanReason"
+                      value={formData.loanReason}
+                      onChange={(e) => setFormData({ ...formData, loanReason: e.target.value })}
+                      placeholder="Enter reason"
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                    {loading ? 'Submitting...' : 'Request Loan'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Loan List */}
           <div className="card shadow">
             <div className="card-body">
               <h3 className="card-title">{role === 'admin' ? 'All Loans' : 'My Loans'}</h3>
@@ -201,7 +270,7 @@ const Loans = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {loans.map(loan => (
+                      {loans.map((loan) => (
                         <tr key={loan._id}>
                           {role === 'admin' && <td>{loan.user?.name || 'Unknown'}</td>}
                           <td>{loan.amount}</td>
@@ -210,7 +279,11 @@ const Loans = () => {
                           <td>{loan.duration || 'N/A'}</td>
                           <td>{loan.totalAmountPayable ? loan.totalAmountPayable.toFixed(2) : 'N/A'}</td>
                           <td>
-                            <span className={`badge bg-${loan.status === 'approved' ? 'success' : loan.status === 'rejected' ? 'danger' : 'warning'} text-white`}>
+                            <span
+                              className={`badge bg-${
+                                loan.status === 'approved' ? 'success' : loan.status === 'rejected' ? 'danger' : 'warning'
+                              } text-white`}
+                            >
                               {loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
                             </span>
                           </td>
@@ -266,13 +339,9 @@ const Loans = () => {
                   </table>
                   <nav>
                     <ul className="pagination justify-content-center">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                         <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                          <button
-                            className="page-link"
-                            onClick={() => handlePageChange(page)}
-                            disabled={loading}
-                          >
+                          <button className="page-link" onClick={() => handlePageChange(page)} disabled={loading}>
                             {page}
                           </button>
                         </li>
@@ -293,12 +362,7 @@ const Loans = () => {
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title">Update Loan</h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={handleCloseUpdateModal}
-                    disabled={loading}
-                  ></button>
+                  <button type="button" className="btn-close" onClick={handleCloseUpdateModal} disabled={loading}></button>
                 </div>
                 <div className="modal-body">
                   {formError && <div className="alert alert-danger">{formError}</div>}
@@ -378,12 +442,7 @@ const Loans = () => {
                   >
                     Cancel
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    onClick={handleDelete}
-                    disabled={loading}
-                  >
+                  <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={loading}>
                     {loading ? 'Deleting...' : 'Delete'}
                   </button>
                 </div>

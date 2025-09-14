@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import { getAmounts, updateAmount, deleteAmount } from '../services/api';
+import { getAmounts, updateAmount } from '../services/api';
 
 const Amount = () => {
   const [role, setRole] = useState('');
@@ -65,16 +65,7 @@ const Amount = () => {
     setFormData({ amount: amount.amount, effectiveDate: amount.effectiveDate.split('T')[0] });
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this amount?')) {
-      try {
-        await deleteAmount(id);
-        fetchAmounts();
-      } catch (err) {
-        setError('Failed to delete amount');
-      }
-    }
-  };
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -151,12 +142,6 @@ const Amount = () => {
                           onClick={() => handleEdit(amt)}
                         >
                           Edit
-                        </button>
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={() => handleDelete(amt._id)}
-                        >
-                          Delete
                         </button>
                       </div>
                     </li>

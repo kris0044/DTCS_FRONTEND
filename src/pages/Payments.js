@@ -1,14 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import { getPayments, makePayment, updatePayment, deletePayment } from '../services/api';
+import { getPayments, makePayment, updatePayment, deletePayment, getCurrentAmount } from '../services/api';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
 const Payments = () => {
   const [role, setRole] = useState('');
-  const [payments, setPayments] = useState([]); // Ensure initial state is an array
+  const [payments, setPayments] = useState([]);
   const [total, setTotal] = useState(0);
+  const [currentAmount, setCurrentAmount] = useState(null); // New state for dynamic amount
   const [currentPage, setCurrentPage] = useState(1);
   const [paymentsPerPage] = useState(10);
   const [error, setError] = useState('');
@@ -17,24 +18,31 @@ const Payments = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [formData, setFormData] = useState({ amount: 600, month: '' });
+  const [formData, setFormData] = useState({ amount: '', month: '' }); // Initialize amount as empty
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
     try {
+      // Fetch payments
       const res = await getPayments(currentPage, paymentsPerPage);
-      // Ensure payments is an array
       const paymentsData = Array.isArray(res.data.payments) ? res.data.payments : [];
       setPayments(paymentsData);
       setTotal(res.data.total || 0);
-      // Debugging: Log the response to check its structure
-      console.log('API Response:', res.data);
+
+      // Fetch current amount
+      const amountRes = await getCurrentAmount();
+      console.log('Current Amount API Response:', amountRes.data);
+      setCurrentAmount(amountRes.data.amount);
+      setFormData(prev => ({ ...prev, amount: amountRes.data.amount })); // Update formData with fetched amount
+      console.log('Current Amount:', amountRes.data.amount);
     } catch (err) {
-      console.error('Fetch Payments Error:', err);
-      setError('Failed to fetch payments');
-      setPayments([]); // Fallback to empty array on error
+      console.error('Fetch Data Error:', err);
+      setError(err.response?.data?.msg || 'Failed to fetch data');
+      setPayments([]);
+      setCurrentAmount(null); // Reset on error
+      setFormData({ amount: '', month: '' }); // Reset formData on error
     } finally {
       setLoading(false);
     }
@@ -46,9 +54,15 @@ const Payments = () => {
       navigate('/login');
       return;
     }
-    const user = jwtDecode(token).user;
-    setRole(user.role);
-    fetchPayments();
+    try {
+      const user = jwtDecode(token).user;
+      setRole(user.role);
+      fetchPayments();
+    } catch (err) {
+      console.error('Token Decode Error:', err.stack);
+      setError('Invalid token, please log in again');
+      navigate('/login');
+    }
   }, [navigate, fetchPayments]);
 
   const handlePageChange = (page) => {
@@ -56,7 +70,7 @@ const Payments = () => {
   };
 
   const handleShowCreate = () => {
-    setFormData({ amount: 600, month: '' });
+    setFormData({ amount: currentAmount || '', month: '' });
     setFormError('');
     setShowCreateModal(true);
   };
@@ -67,8 +81,12 @@ const Payments = () => {
       setFormError('Month is required');
       return;
     }
-    if (formData.amount !== 600) {
-      setFormError('Amount must be 600');
+    if (currentAmount === null) {
+      setFormError('Payment amount not available');
+      return;
+    }
+    if (parseInt(formData.amount) !== currentAmount) {
+      setFormError(`Amount must be ₹${currentAmount}`);
       return;
     }
     setLoading(true);
@@ -85,7 +103,7 @@ const Payments = () => {
 
   const handleShowUpdate = (payment) => {
     setSelectedPayment(payment);
-    setFormData({ amount: payment.amount, month: payment.month });
+    setFormData({ amount: currentAmount || payment.amount, month: payment.month });
     setFormError('');
     setShowUpdateModal(true);
   };
@@ -96,8 +114,12 @@ const Payments = () => {
       setFormError('Month is required');
       return;
     }
-    if (formData.amount !== 600) {
-      setFormError('Amount must be 600');
+    if (currentAmount === null) {
+      setFormError('Payment amount not available');
+      return;
+    }
+    if (parseInt(formData.amount) !== currentAmount) {
+      setFormError(`Amount must be ₹${currentAmount}`);
       return;
     }
     setLoading(true);
@@ -150,8 +172,12 @@ const Payments = () => {
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h3 className="card-title">All Payments</h3>
                 {role === 'staff' && (
-                  <button className="btn btn-primary" onClick={handleShowCreate} disabled={loading}>
-                    Make Payment
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleShowCreate}
+                    disabled={loading || currentAmount === null}
+                  >
+                    Make Payment {currentAmount !== null ? `₹${currentAmount}` : 'Loading...'}
                   </button>
                 )}
               </div>
@@ -174,7 +200,7 @@ const Payments = () => {
                       {payments.map(payment => (
                         <tr key={payment._id}>
                           <td>{payment.user?.name || 'Unknown'}</td>
-                          <td>{payment.amount}</td>
+                          <td>₹{payment.amount}</td>
                           <td>{payment.month}</td>
                           <td>{new Date(payment.date).toLocaleDateString()}</td>
                           {role === 'admin' && (
@@ -252,7 +278,7 @@ const Payments = () => {
                       />
                     </div>
                     <div className="mb-3">
-                      <label htmlFor="month" className="form-label">Month (YYYY-MM)</label>
+                      <label htmlFor="month" className="form-label">Month </label>
                       <input
                         type="text"
                         className="form-control"
@@ -260,11 +286,11 @@ const Payments = () => {
                         value={formData.month}
                         onChange={(e) => setFormData({ ...formData, month: e.target.value })}
                         required
-                        placeholder="YYYY-MM"
+                        placeholder="january,february,march...etc."
                       />
                     </div>
-                    <button type="submit" className="btn btn-primary" disabled={loading}>
-                      {loading ? 'Submitting...' : 'Submit Payment'}
+                    <button type="submit" className="btn btn-primary" disabled={loading || currentAmount === null}>
+                      {loading ? 'Submitting...' : `Submit Payment ₹${currentAmount || 'Loading...'}`}
                     </button>
                   </form>
                 </div>
@@ -314,7 +340,7 @@ const Payments = () => {
                         placeholder="YYYY-MM"
                       />
                     </div>
-                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                    <button type="submit" className="btn btn-primary" disabled={loading || currentAmount === null}>
                       {loading ? 'Updating...' : 'Update'}
                     </button>
                   </form>

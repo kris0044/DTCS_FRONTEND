@@ -1,125 +1,100 @@
-import { useEffect, useState, useCallback } from 'react';
-import { jwtDecode } from 'jwt-decode';
-import { getPendingUsers, approveUser, getPayments, makePayment, getLoans, requestLoan, updateLoan, getCurrentAmount } from '../services/api';
-import { useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
+import useDashboard from '../hooks/dashboard';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, LineElement, PointElement } from 'chart.js';
+import { Bar, Pie, Line } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, LineElement, PointElement);
 
 const Dashboard = () => {
-  const [role, setRole] = useState('');
-  const [pendingUsers, setPendingUsers] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [loans, setLoans] = useState([]);
-  const [currentAmount, setCurrentAmount] = useState(null);
-  const [formData, setFormData] = useState({ loanAmount: '', loanReason: '', paymentMonth: '' });
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const {
+    role,
+    dashboardData,
+   
+    error,
+  
+    handleLogout,
+  } = useDashboard();
 
-  const fetchData = useCallback(async () => {
-    try {
-      if (role === 'admin') {
-        const usersRes = await getPendingUsers();
-        setPendingUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
-      }
-      const paymentsRes = await getPayments();
-      const paymentsData = Array.isArray(paymentsRes.data.payments) ? paymentsRes.data.payments : [];
-      setPayments(paymentsData);
-      const loansRes = await getLoans();
-      setLoans(Array.isArray(loansRes.data) ? loansRes.data : []);
-      // Fetch current amount for staff or admin
-      const amountRes = await getCurrentAmount();
-      console.log('Current Amount API Response:', amountRes.data);
-      setCurrentAmount(amountRes.data.amount || 600);
-      console.log('Current Amount:', amountRes.data.amount || 600);
-      console.log('Payments API Response:', paymentsRes.data);
-    } catch (err) {
-      console.error('Fetch Data Error:', err.response || err);
-      const errorMsg = err.response?.data?.error || err.response?.data?.msg || 'Failed to fetch data';
-      setError(errorMsg);
-      setPayments([]);
-      setLoans([]);
-      setCurrentAmount(600);
-      if (role === 'admin') setPendingUsers([]);
-    }
-  }, [role]);
+  // Payment Bar Chart (Total Payments per Month)
+  const paymentBarChartData = useMemo(() => {
+    const sortedPayments = [...dashboardData.paymentSummary].sort((a, b) => a._id.localeCompare(b._id));
+    return {
+      type: 'bar',
+      labels: sortedPayments.map((p) => p._id),
+      datasets: [
+        {
+          label: 'Total Payments (₹)',
+          data: sortedPayments.map((p) => p.totalAmount),
+          backgroundColor: 'rgba(75, 192, 192, 0.6)',
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [dashboardData.paymentSummary]);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    try {
-      const user = jwtDecode(token).user;
-      setRole(user.role);
-      fetchData();
-    } catch (err) {
-      console.error('Token Decode Error:', err.stack);
-      setError('Invalid token, please log in again');
-      navigate('/login');
-    }
-  }, [navigate, fetchData]);
+  // Loan Pie Chart (Status Distribution)
+  const loanPieChartData = useMemo(() => {
+    const statuses = { pending: 0, approved: 0, rejected: 0 };
+    dashboardData.loanSummary.forEach((s) => {
+      statuses[s._id] = s.count;
+    });
+    return {
+      type: 'pie',
+      labels: ['Pending', 'Approved', 'Rejected'],
+      datasets: [
+        {
+          data: [statuses.pending, statuses.approved, statuses.rejected],
+          backgroundColor: ['#FFCE56', '#36A2EB', '#FF6384'],
+          hoverOffset: 4,
+        },
+      ],
+    };
+  }, [dashboardData.loanSummary]);
 
-  const handleApproveUser = async (id) => {
-    try {
-      await approveUser(id);
-      fetchData();
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to approve user');
-    }
-  };
+  // Loan Amounts Bar Chart
+  const loanBarChartData = useMemo(() => {
+    const amounts = { pending: 0, approved: 0, rejected: 0 };
+    dashboardData.loanSummary.forEach((s) => {
+      amounts[s._id] = s.totalAmount;
+    });
+    return {
+      type: 'bar',
+      labels: ['Pending', 'Approved', 'Rejected'],
+      datasets: [
+        {
+          label: 'Loan Amounts (₹)',
+          data: [amounts.pending, amounts.approved, amounts.rejected],
+          backgroundColor: ['#FFCE56', '#36A2EB', '#FF6384'],
+        },
+      ],
+    };
+  }, [dashboardData.loanSummary]);
 
-  const handleMakePayment = async (e) => {
-    e.preventDefault();
-    if (!formData.paymentMonth) {
-      setError('Month is required');
-      return;
-    }
-    if (!currentAmount) {
-      setError('Payment amount not available');
-      return;
-    }
-    try {
-      await makePayment({ amount: currentAmount, month: formData.paymentMonth });
-      setFormData({ ...formData, paymentMonth: '' });
-      fetchData();
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Payment failed');
-    }
-  };
-
-  const handleRequestLoan = async (e) => {
-    e.preventDefault();
-    if (!formData.loanAmount || !formData.loanReason) {
-      setError('All loan fields are required');
-      return;
-    }
-    if (formData.loanAmount <= 0) {
-      setError('Loan amount must be positive');
-      return;
-    }
-    try {
-      await requestLoan({ amount: formData.loanAmount, reason: formData.loanReason });
-      setFormData({ ...formData, loanAmount: '', loanReason: '' });
-      fetchData();
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Loan request failed');
-    }
-  };
-
-  const handleUpdateLoan = async (id, status) => {
-    try {
-      await updateLoan(id, status);
-      fetchData();
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Loan update failed');
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
+  // Cumulative Payments Line Chart
+  const paymentLineChartData = useMemo(() => {
+    const sortedPayments = [...dashboardData.paymentSummary].sort((a, b) => a._id.localeCompare(b._id));
+    let cumulative = 0;
+    const cumulativeData = sortedPayments.map((p) => {
+      cumulative += p.totalAmount;
+      return cumulative;
+    });
+    return {
+      type: 'line',
+      labels: sortedPayments.map((p) => p._id),
+      datasets: [
+        {
+          label: 'Cumulative Payments (₹)',
+          data: cumulativeData,
+          fill: false,
+          backgroundColor: 'rgba(153, 102, 255, 0.6)',
+          borderColor: 'rgba(153, 102, 255, 1)',
+        },
+      ],
+    };
+  }, [dashboardData.paymentSummary]);
 
   return (
     <div className="d-flex">
@@ -129,14 +104,68 @@ const Dashboard = () => {
         <div className="container mt-4">
           {error && <div className="alert alert-danger">{error}</div>}
 
+          {/* Current Amount
+          {dashboardData.currentAmount && (
+            <div className="card mb-4 shadow">
+              <div className="card-body">
+                <h3 className="card-title">Current Monthly Payment</h3>
+                <p>Amount: ₹{dashboardData.currentAmount.amount}</p>
+                <p>Effective Date: {new Date(dashboardData.currentAmount.effectiveDate).toLocaleDateString()}</p>
+              </div>
+            </div>
+          )} */}
+
+          {/* Notices */}
+          {/* <div className="card mb-4 shadow">
+            <div className="card-body">
+              <h3 className="card-title">Recent Notices</h3>
+              {dashboardData.notices.length === 0 ? (
+                <p>No notices available</p>
+              ) : (
+                <ul className="list-group">
+                  {dashboardData.notices.map((notice) => (
+                    <li key={notice._id} className="list-group-item">
+                      <strong>{notice.title}</strong>: {notice.description} <br />
+                      <small>{new Date(notice.date).toLocaleDateString()}</small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div> */}
+
+          {/* Meetings */}
+          {/* <div className="card mb-4 shadow">
+            <div className="card-body">
+              <h3 className="card-title">Upcoming Meetings</h3>
+              {dashboardData.meetings.length === 0 ? (
+                <p>No upcoming meetings</p>
+              ) : (
+                <ul className="list-group">
+                  {dashboardData.meetings.map((meeting) => (
+                    <li key={meeting._id} className="list-group-item">
+                      <strong>{meeting.title}</strong>: {meeting.description} <br />
+                      <small>
+                        {new Date(meeting.date).toLocaleDateString()} at {meeting.time}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div> */}
+
           {role === 'staff' && (
             <>
-              <div className="card mb-4 shadow">
+              {/* Make Payment */}
+              {/* <div className="card mb-4 shadow">
                 <div className="card-body">
                   <h3 className="card-title">Make Monthly Payment</h3>
                   <form onSubmit={handleMakePayment}>
                     <div className="mb-3">
-                      <label htmlFor="paymentMonth" className="form-label">Month (e.g., 2025-08)</label>
+                      <label htmlFor="paymentMonth" className="form-label">
+                        Month (e.g., 2025-08)
+                      </label>
                       <input
                         type="text"
                         className="form-control"
@@ -147,19 +176,26 @@ const Dashboard = () => {
                         placeholder="Enter month"
                       />
                     </div>
-                    <button type="submit" className="btn btn-success" disabled={currentAmount === null}>
-                      Pay ₹{currentAmount !== null ? currentAmount : 'Loading...'}
+                    <button
+                      type="submit"
+                      className="btn btn-success"
+                      disabled={!dashboardData.currentAmount}
+                    >
+                      Pay ₹{dashboardData.currentAmount ? dashboardData.currentAmount.amount : 'Loading...'}
                     </button>
                   </form>
                 </div>
-              </div>
+              </div> */}
 
-              <div className="card mb-4 shadow">
+              {/* Request Loan */}
+              {/* <div className="card mb-4 shadow">
                 <div className="card-body">
                   <h3 className="card-title">Request Loan</h3>
                   <form onSubmit={handleRequestLoan}>
                     <div className="mb-3">
-                      <label htmlFor="loanAmount" className="form-label">Amount (₹)</label>
+                      <label htmlFor="loanAmount" className="form-label">
+                        Amount (₹)
+                      </label>
                       <input
                         type="number"
                         className="form-control"
@@ -171,7 +207,9 @@ const Dashboard = () => {
                       />
                     </div>
                     <div className="mb-3">
-                      <label htmlFor="loanReason" className="form-label">Reason</label>
+                      <label htmlFor="loanReason" className="form-label">
+                        Reason
+                      </label>
                       <input
                         type="text"
                         className="form-control"
@@ -182,68 +220,188 @@ const Dashboard = () => {
                         placeholder="Enter reason"
                       />
                     </div>
-                    <button type="submit" className="btn btn-primary">Request Loan</button>
+                    <button type="submit" className="btn btn-primary">
+                      Request Loan
+                    </button>
                   </form>
                 </div>
-              </div>
+              </div> */}
             </>
           )}
 
           {role === 'admin' && (
             <>
-              <div className="card mb-4 shadow">
+              {/* Pending User Approvals */}
+              {/* <div className="card mb-4 shadow">
                 <div className="card-body">
                   <h3 className="card-title">Pending User Approvals</h3>
-                  {pendingUsers.length === 0 ? (
+                  {dashboardData.pendingUsers.length === 0 ? (
                     <p>No pending approvals</p>
                   ) : (
                     <ul className="list-group">
-                      {pendingUsers.map(user => (
-                        <li key={user._id} className="list-group-item d-flex justify-content-between align-items-center">
+                      {dashboardData.pendingUsers.map((user) => (
+                        <li
+                          key={user._id}
+                          className="list-group-item d-flex justify-content-between align-items-center"
+                        >
                           {user.name} ({user.email})
-                          <button className="btn btn-sm btn-success" onClick={() => handleApproveUser(user._id)}>Approve</button>
+                          <button
+                            className="btn btn-sm btn-success"
+                            onClick={() => handleApproveUser(user._id)}
+                          >
+                            Approve
+                          </button>
                         </li>
                       ))}
                     </ul>
                   )}
                 </div>
-              </div>
+              </div> */}
 
-              <div className="card mb-4 shadow">
+              {/* Pending Loan Requests */}
+              {/* <div className="card mb-4 shadow">
                 <div className="card-body">
-                  <h3 className="card-title">Loan Requests</h3>
-                  {loans.filter(l => l.status === 'pending').length === 0 ? (
+                  <h3 className="card-title">Pending Loan Requests</h3>
+                  {dashboardData.userLoans.filter((l) => l.status === 'pending').length === 0 ? (
                     <p>No pending loans</p>
                   ) : (
                     <ul className="list-group">
-                      {loans.filter(l => l.status === 'pending').map(loan => (
-                        <li key={loan._id} className="list-group-item d-flex justify-content-between align-items-center">
-                          {loan.user.name}: ₹{loan.amount} - {loan.reason}
-                          <div>
-                            <button className="btn btn-sm btn-success me-2" onClick={() => handleUpdateLoan(loan._id, 'approved')}>
-                              Approve
-                            </button>
-                            <button className="btn btn-sm btn-danger" onClick={() => handleUpdateLoan(loan._id, 'rejected')}>
-                              Reject
-                            </button>
-                          </div>
-                        </li>
-                      ))}
+                      {dashboardData.userLoans
+                        .filter((l) => l.status === 'pending')
+                        .map((loan) => (
+                          <li
+                            key={loan._id}
+                            className="list-group-item d-flex justify-content-between align-items-center"
+                          >
+                            {loan.user.name}: ₹{loan.amount} - {loan.reason}
+                            <div>
+                              <button
+                                className="btn btn-sm btn-success me-2"
+                                onClick={() => handleUpdateLoan(loan._id, 'approved')}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                className="btn btn-sm btn-danger"
+                                onClick={() => handleUpdateLoan(loan._id, 'rejected')}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </li>
+                        ))}
                     </ul>
                   )}
                 </div>
-              </div>
+              </div> */}
             </>
           )}
 
+          {/* Charts */}
+          <div className="row mb-4">
+            <div className="col-md-6">
+              <div className="card shadow">
+                <div className="card-body">
+                  <h3 className="card-title">Payments by Month</h3>
+                  {dashboardData.paymentSummary.length === 0 ? (
+                    <p>No payment data available</p>
+                  ) : (
+                    <Bar
+                      data={paymentBarChartData}
+                      options={{
+                        responsive: true,
+                        plugins: { legend: { position: 'top' }, title: { display: true, text: 'Payments by Month' } },
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="card shadow">
+                <div className="card-body">
+                  <h3 className="card-title">Cumulative Payments</h3>
+                  {dashboardData.paymentSummary.length === 0 ? (
+                    <p>No payment data available</p>
+                  ) : (
+                    <Line
+                      data={paymentLineChartData}
+                      options={{
+                        responsive: true,
+                        plugins: {
+                          legend: { position: 'top' },
+                          title: { display: true, text: 'Cumulative Payments Over Time' },
+                        },
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+         <div className="row mb-4">
+  <div className="col-md-6">
+    <div className="card shadow">
+      <div className="card-body">
+        <h3 className="card-title">Loan Status Distribution</h3>
+        {dashboardData.loanSummary.length === 0 ? (
+          <p>No loan data available</p>
+        ) : (
+          <div className="chart-container">
+            <Pie
+              data={loanPieChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false, // Allow chart to fill container
+                plugins: {
+                  legend: { position: 'top' },
+                  title: { display: true, text: 'Loan Status Distribution' },
+                },
+              }}
+              height={300} // Set explicit height
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+  <div className="col-md-6">
+    <div className="card shadow">
+      <div className="card-body">
+        <h3 className="card-title">Loan Amounts by Status</h3>
+        {dashboardData.loanSummary.length === 0 ? (
+          <p>No loan data available</p>
+        ) : (
+          <div className="chart-container">
+            <Bar
+              data={loanBarChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false, // Allow chart to fill container
+                plugins: {
+                  legend: { position: 'top' },
+                  title: { display: true, text: 'Loan Amounts by Status' },
+                },
+              }}
+              height={300} // Set explicit height
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+
+          {/* Payment History (User-specific for staff, all for admin) */}
           <div className="card mb-4 shadow">
             <div className="card-body">
               <h3 className="card-title">Payment History</h3>
-              {payments.length === 0 ? (
+              {dashboardData.userPayments.length === 0 ? (
                 <p>No payments recorded</p>
               ) : (
                 <ul className="list-group">
-                  {payments.map(p => (
+                  {dashboardData.userPayments.map((p) => (
                     <li key={p._id} className="list-group-item">
                       ₹{p.amount} for {p.month} on {new Date(p.date).toLocaleDateString()}
                     </li>
@@ -253,14 +411,15 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Loan History (User-specific for staff, all for admin) */}
           <div className="card shadow">
             <div className="card-body">
               <h3 className="card-title">Loan History</h3>
-              {loans.length === 0 ? (
+              {dashboardData.userLoans.length === 0 ? (
                 <p>No loans recorded</p>
               ) : (
                 <ul className="list-group">
-                  {loans.map(l => (
+                  {dashboardData.userLoans.map((l) => (
                     <li key={l._id} className="list-group-item">
                       ₹{l.amount} - {l.reason} ({l.status}) on {new Date(l.date).toLocaleDateString()}
                     </li>

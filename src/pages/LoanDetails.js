@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import { getLoanDetails } from '../services/api';
+import { getLoanDetails, updatePaymentStatus } from '../services/api'; // Import new API function
 import Header from './Header';
 import Sidebar from './Sidebar';
 
@@ -31,6 +31,7 @@ const LoanDetails = () => {
       setError('Invalid token, please log in again');
       navigate('/login');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
 
   const fetchLoanDetails = async () => {
@@ -42,6 +43,18 @@ const LoanDetails = () => {
       setPendingEMIs(res.data.pendingEMIs);
     } catch (err) {
       setError(err.response?.data?.msg || 'Failed to fetch loan details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (paymentIndex, newStatus) => {
+    try {
+      setLoading(true);
+      await updatePaymentStatus(id, paymentIndex, newStatus); // Call API to update status
+      await fetchLoanDetails(); // Refresh loan details
+    } catch (err) {
+      setError(err.response?.data?.msg || 'Failed to update payment status');
     } finally {
       setLoading(false);
     }
@@ -82,6 +95,7 @@ const LoanDetails = () => {
                       <th>Amount (₹)</th>
                       <th>Due Date</th>
                       <th>Status</th>
+                      {role === 'admin' && <th>Action</th>} {/* Add Action column for admins */}
                     </tr>
                   </thead>
                   <tbody>
@@ -95,6 +109,19 @@ const LoanDetails = () => {
                             {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                           </span>
                         </td>
+                        {role === 'admin' && (
+                          <td>
+                            <select
+                              value={payment.status}
+                              onChange={(e) => handleUpdateStatus(index, e.target.value)}
+                              className="form-select form-select-sm"
+                              disabled={loading}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="paid">Paid</option>
+                            </select>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

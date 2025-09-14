@@ -37,7 +37,9 @@ export const getAmounts = () => API.get('/amounts');
 export const addAmount = (data) => API.post('/amounts', data);
 export const updateAmount = (id, data) => API.put(`/amounts/${id}`, data);
 export const deleteAmount = (id) => API.delete(`/amounts/${id}`);
-
+export const updatePaymentStatus = (loanId, paymentIndex, newStatus) => {
+  return API.put(`/loans/${loanId}/payments/${paymentIndex}`, { status: newStatus });
+}
 
 export const addInterestRate = (data) => API.post(`/interest-rates`);
 export const getInterestRates = () => API.get(`/interest-rates`);
@@ -55,4 +57,5 @@ export const addMeeting = (data) => API.post('/meetings', data);
 export const updateMeeting = (id, data) => API.put(`/meetings/${id}`, data);
 export const deleteMeeting = (id) => API.delete(`/meetings/${id}`);
 
+export const getDashboardData = () => API.get('/dashboard');
 export default API;
