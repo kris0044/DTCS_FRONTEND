@@ -11,6 +11,9 @@ const Sidebar = ({ role }) => {
         {`
           .sidebar-custom {
             height: 100vh !important; /* Explicitly enforce full height */
+            position:sticky;
+            top:0;
+            z-index:1000;
           }
           .sidebar-custom .sidebar-item {
             transition: all 0.3s ease;
@@ -81,6 +84,20 @@ const Sidebar = ({ role }) => {
                 </NavLink>
               </li>
             )}
+
+              {role === 'admin' && (
+              <li className="sidebar-item relative mb-2">
+                <NavLink
+                  to="/balances"
+                  className={({ isActive }) => `flex items-center gap-2 p-2 text-dark hover:text-dark w-full ${isActive ? 'active' : ''}`}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <FaUsers className="text-lg" />
+                  {!isCollapsed && <span className="text-base">Balance</span>}
+                </NavLink>
+              </li>
+            )}
+
             {role === 'admin' && (
               <li className="sidebar-item relative mb-2">
                 <NavLink
@@ -101,6 +118,16 @@ const Sidebar = ({ role }) => {
               >
                 <FaMoneyBill className="text-lg" />
                 {!isCollapsed && <span className="text-base">Loans</span>}
+              </NavLink>
+            </li>
+             <li className="sidebar-item relative mb-2">
+              <NavLink
+                to="/resignations"
+                className={({ isActive }) => `flex items-center gap-2 p-2 text-dark hover:text-dark w-full ${isActive ? 'active' : ''}`}
+                style={{ textDecoration: 'none' }}
+              >
+                <FaMoneyBill className="text-lg" />
+                {!isCollapsed && <span className="text-base">resignations</span>}
               </NavLink>
             </li>
             <li className="sidebar-item relative mb-2">

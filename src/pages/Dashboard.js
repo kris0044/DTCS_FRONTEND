@@ -43,11 +43,11 @@ const Dashboard = () => {
     });
     return {
       type: 'pie',
-      labels: ['Pending', 'Approved', 'Rejected'],
+      labels: ['Pending', 'Approved', 'Rejected','completed'],
       datasets: [
         {
-          data: [statuses.pending, statuses.approved, statuses.rejected],
-          backgroundColor: ['#FFCE56', '#36A2EB', '#FF6384'],
+          data: [statuses.pending, statuses.approved, statuses.rejected,statuses.completed],
+          backgroundColor: ['#FFCE56', '#36A2EB', '#FF6384','#4BC0C0'],
           hoverOffset: 4,
         },
       ],
@@ -62,12 +62,12 @@ const Dashboard = () => {
     });
     return {
       type: 'bar',
-      labels: ['Pending', 'Approved', 'Rejected'],
+      labels: ['Pending', 'Approved', 'Rejected','completed'],
       datasets: [
         {
           label: 'Loan Amounts (₹)',
-          data: [amounts.pending, amounts.approved, amounts.rejected],
-          backgroundColor: ['#FFCE56', '#36A2EB', '#FF6384'],
+          data: [amounts.pending, amounts.approved, amounts.rejected,amounts.completed],
+          backgroundColor: ['#FFCE56', '#36A2EB', '#FF6384','#4BC0C0'],
         },
       ],
     };

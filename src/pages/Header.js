@@ -6,12 +6,12 @@ const Header = ({ role, onLogout }) => {
   const navigate = useNavigate();
 
   const handleProfileClick = () => {
-    navigate('/profile');
+    navigate('/my-profile');
     setIsDropdownOpen(false);
   };
 
   return (
-    <header className="bg-primary text-white p-3 shadow">
+    <header className="bg-primary text-white p-3 shadow" style={{position: 'sticky', top: 0, zIndex: 1000}}>
       <div className="container d-flex justify-content-between align-items-center">
         <h1 className="h4 mb-0">{role === 'admin' ? 'Admin' : 'Staff'} Dashboard</h1>
         <div className="dropdown">
