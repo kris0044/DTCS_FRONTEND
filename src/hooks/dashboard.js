@@ -14,6 +14,18 @@ const useDashboard = () => {
     pendingUsers: [],
     userPayments: [],
     userLoans: [],
+    counts: {
+      completedLoans: 0,
+      pendingLoans: 0,
+      ongoingLoans: 0,
+      rejectedLoans: 0,
+      totalUsers: 0,
+      totalMeetings: 0,
+      totalNotices: 0,
+      totalBalance: 0,
+      totalResignations: 0,
+      totalPayments: 0,
+    },
   });
   const [formData, setFormData] = useState({ loanAmount: '', loanReason: '', paymentMonth: '' });
   const [error, setError] = useState('');
@@ -31,6 +43,18 @@ const useDashboard = () => {
         pendingUsers: Array.isArray(res.data.pendingUsers) ? res.data.pendingUsers : [],
         userPayments: Array.isArray(res.data.userPayments) ? res.data.userPayments : [],
         userLoans: Array.isArray(res.data.userLoans) ? res.data.userLoans : [],
+        counts: res.data.counts || {
+          completedLoans: 0,
+          pendingLoans: 0,
+          ongoingLoans: 0,
+          rejectedLoans: 0,
+          totalUsers: 0,
+          totalMeetings: 0,
+          totalNotices: 0,
+          totalBalance: 0,
+          totalResignations: 0,
+          totalPayments: 0,
+        },
       });
     } catch (err) {
       console.error('Fetch Dashboard Data Error:', err.response || err);
@@ -45,6 +69,18 @@ const useDashboard = () => {
         pendingUsers: [],
         userPayments: [],
         userLoans: [],
+        counts: {
+          completedLoans: 0,
+          pendingLoans: 0,
+          ongoingLoans: 0,
+          rejectedLoans: 0,
+          totalUsers: 0,
+          totalMeetings: 0,
+          totalNotices: 0,
+          totalBalance: 0,
+          totalResignations: 0,
+          totalPayments: 0,
+        },
       });
     }
   }, []);

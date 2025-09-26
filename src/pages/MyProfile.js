@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import Sidebar from './Sidebar';
+import Header from './Header';
 import { getCurrentUser, updateUser } from '../services/api';
 import userprofile from '../services/api';
 const MyProfile = () => {
@@ -42,7 +44,10 @@ const MyProfile = () => {
       navigate('/login');
     }
   }, [navigate]);
-
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
 const fetchProfile = async () => {
   try {
     const res = await getCurrentUser();
@@ -151,6 +156,10 @@ const handleSubmit = async (e) => {
 };
 
   return (
+    <div className="d-flex">
+      <Sidebar role={role} />
+      <div className="flex-grow-1">
+        <Header role={role} onLogout={handleLogout} />
     <div className="container mt-5 pt-5">
       <div className="row justify-content-center">
         <div className="col-md-8">
@@ -345,6 +354,8 @@ const handleSubmit = async (e) => {
           </div>
         </div>
       </div>
+    </div>
+    </div>
     </div>
   );
 };
