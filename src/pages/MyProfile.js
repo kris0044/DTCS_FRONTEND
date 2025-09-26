@@ -71,7 +71,7 @@ const fetchProfile = async () => {
       isApproved: user.isApproved || false,
     });
     // Normalize path separators and extract filename
-    setPhotoUrl(user.photo ? `http://localhost:5000/uploads/${user.photo.replace(/\\/g, '/').split('/').pop()}` : '');
+    setPhotoUrl(user.photo ? `https://dtcs-backend.onrender.com/uploads/${user.photo.replace(/\\/g, '/').split('/').pop()}` : '');
   } catch (err) {
     setError(err.response?.data?.msg || 'Failed to fetch profile');
   }
