@@ -13,6 +13,7 @@ import Resignations from './pages/Resignations';
 import Notices from './pages/Notices';
 import BalanceManagement from './pages/BalanceManagement';
 import MyProfile from './pages/MyProfile';
+import EmiList from './pages/EmiList';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
 
 
@@ -34,6 +35,7 @@ function App() {
         <Route path="/balances" element={<BalanceManagement />} />
         <Route path="/my-profile" element={<MyProfile />} />
         <Route path="/resignations" element={<Resignations />} />
+        <Route path="/emis" element={<EmiList />} />
         {/* Add other routes as needed */}
         <Route path="/" element={<Login />} />
       </Routes>

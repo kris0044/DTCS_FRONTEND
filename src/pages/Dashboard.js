@@ -103,7 +103,7 @@ const Dashboard = () => {
     { title: 'Ongoing Loans', value: dashboardData.counts.ongoingLoans, route: '/loans?status=approved' },
     { title: 'Rejected Loans', value: dashboardData.counts.rejectedLoans, route: '/loans?status=rejected' },
     { title: 'Total Resignations', value: dashboardData.counts.totalResignations, route: '/resignations' },
-    { title: 'Total Maintainance paid', value: `₹${dashboardData.counts.totalPayments.toFixed(2)}`, route: '/payments' },
+    { title: 'Total Contribution', value: `₹${dashboardData.counts.totalPayments.toFixed(2)}`, route: '/payments' },
   ] : [
     { title: 'Completed Loans', value: dashboardData.counts.completedLoans, route: '/loans?status=completed' },
     { title: 'Pending Loans', value: dashboardData.counts.pendingLoans, route: '/loans?status=pending' },
@@ -114,7 +114,7 @@ const Dashboard = () => {
     { title: 'Total Notices', value: dashboardData.counts.totalNotices, route: '/notices' },
     { title: 'Total Balance', value: `₹${dashboardData.counts.totalBalance.toFixed(2)}`, route: '/balances' },
     { title: 'Total Resignations', value: dashboardData.counts.totalResignations, route: '/resignations' },
-    { title: 'Total Maintainance paid', value: `₹${dashboardData.counts.totalPayments.toFixed(2)}`, route: '/payments' },
+    { title: 'Total Contribution', value: `₹${dashboardData.counts.totalPayments.toFixed(2)}`, route: '/payments' },
   ];
 
   return (
