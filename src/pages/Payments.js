@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { getPayments, makePayment, updatePayment, deletePayment, getCurrentAmount } from '../services/api';
@@ -8,7 +8,7 @@ import swal from 'sweetalert';
 
 const Payments = () => {
   const [role, setRole] = useState('');
-  const [payments, setPayments] = useState([]);
+  const [allPayments, setAllPayments] = useState([]);
   const [total, setTotal] = useState(0);
   const [currentAmount, setCurrentAmount] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,6 +21,7 @@ const Payments = () => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [formData, setFormData] = useState({ amount: '', month: '' });
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({ month: '', year: '', user: '' });
   const navigate = useNavigate();
 
   const loadRazorpayScript = () => {
@@ -36,9 +37,10 @@ const Payments = () => {
   const fetchPayments = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getPayments(currentPage, paymentsPerPage);
+      // Fetch all payments by requesting a large page size
+      const res = await getPayments(1, 10000);
       const paymentsData = Array.isArray(res.data.payments) ? res.data.payments : [];
-      setPayments(paymentsData);
+      setAllPayments(paymentsData);
       setTotal(res.data.total || 0);
 
       const amountRes = await getCurrentAmount();
@@ -49,13 +51,46 @@ const Payments = () => {
     } catch (err) {
       console.error('Fetch Data Error:', err);
       setError(err.response?.data?.msg || 'Failed to fetch data');
-      setPayments([]);
+      setAllPayments([]);
       setCurrentAmount(null);
       setFormData({ amount: '', month: '' });
     } finally {
       setLoading(false);
     }
-  }, [currentPage, paymentsPerPage]);
+  }, []);
+
+  const filteredPayments = useMemo(() => {
+    let filtered = allPayments;
+    if (filters.month) {
+      filtered = filtered.filter(payment =>
+        payment.month.toLowerCase().includes(filters.month.toLowerCase())
+      );
+    }
+    if (filters.year) {
+      filtered = filtered.filter(payment => {
+        const paymentDate = new Date(payment.date);
+        return paymentDate.getFullYear().toString() === filters.year;
+      });
+    }
+    if (filters.user) {
+      filtered = filtered.filter(payment =>
+        payment.user?.name?.toLowerCase().includes(filters.user.toLowerCase())
+      );
+    }
+    return filtered;
+  }, [allPayments, filters.month, filters.year, filters.user]);
+
+  const currentPayments = useMemo(() => {
+    const startIndex = (currentPage - 1) * paymentsPerPage;
+    return filteredPayments.slice(startIndex, startIndex + paymentsPerPage);
+  }, [filteredPayments, currentPage, paymentsPerPage]);
+
+  const filteredTotal = filteredPayments.length;
+  const totalPages = Math.ceil(filteredTotal / paymentsPerPage);
+
+  const totalAmount = useMemo(() => {
+    return filteredPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+  }, [filteredPayments]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -74,8 +109,20 @@ const Payments = () => {
     }
   }, [navigate, fetchPayments]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.month, filters.year, filters.user]);
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
+  };
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleClearFilters = () => {
+    setFilters({ month: '', year: '', user: '' });
   };
 
   const handleShowCreate = () => {
@@ -211,15 +258,13 @@ const Payments = () => {
     navigate('/login');
   };
 
-  const totalPages = Math.ceil(total / paymentsPerPage);
-
   return (
     <div className="min-vh-100 d-flex" style={{ backgroundColor: '#ffffff' }}>
       <Sidebar role={role} />
       <div className="flex-grow-1">
         <Header role={role} onLogout={handleLogout} />
         <div className="container mt-4 p-4">
-          <h2 className="mb-4" style={{ color: '#333333' }}>Payment Management</h2>
+          <h2 className="mb-4" style={{ color: '#333333' }}>Contribution Management</h2>
           {error && (
             <div
               className="alert text-center"
@@ -231,7 +276,7 @@ const Payments = () => {
           <div className="card shadow-lg" style={{ borderRadius: '20px', backgroundColor: '#f8f9fa' }}>
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 className="card-title" style={{ color: '#333333' }}>All Payments</h3>
+                <h3 className="card-title" style={{ color: '#333333' }}>All Contribution</h3>
                 {role === 'staff' && (
                   <button
                     className="btn btn-primary"
@@ -243,13 +288,60 @@ const Payments = () => {
                   </button>
                 )}
               </div>
+
+              {/* Filters */}
+              <div className="row mb-3">
+                <div className="col-md-3">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Month (e.g., January)"
+                    value={filters.month}
+                    onChange={(e) => handleFilterChange('month', e.target.value)}
+                    style={{ color: '#333333' }}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="Year (e.g., 2025)"
+                    value={filters.year}
+                    onChange={(e) => handleFilterChange('year', e.target.value)}
+                    style={{ color: '#333333' }}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="User Name"
+                    value={filters.user}
+                    onChange={(e) => handleFilterChange('user', e.target.value)}
+                    style={{ color: '#333333' }}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <button
+                    className="btn btn-secondary me-2"
+                    onClick={handleClearFilters}
+                    disabled={loading}
+                    style={{ backgroundColor: '#6c757d', borderColor: '#6c757d' }}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+
               {loading && (
                 <div className="alert alert-info" style={{ backgroundColor: '#e9ecef', color: '#333333' }}>
                   Loading...
                 </div>
               )}
-              {payments.length === 0 && !loading ? (
-                <p style={{ color: '#333333' }}>No payments found</p>
+              {currentPayments.length === 0 && !loading ? (
+                <p style={{ color: '#333333' }}>
+                  No payments found {Object.values(filters).some(v => v) ? 'matching the filters' : ''}
+                </p>
               ) : (
                 <>
                   <table className="table table-striped table-hover">
@@ -263,7 +355,7 @@ const Payments = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {payments.map(payment => (
+                      {currentPayments.map(payment => (
                         <tr key={payment._id}>
                           <td style={{ color: '#333333' }}>{payment.user?.name || 'Unknown'}</td>
                           <td style={{ color: '#333333' }}>₹{payment.amount.toFixed(2)}</td>
@@ -295,6 +387,15 @@ const Payments = () => {
                       ))}
                     </tbody>
                   </table>
+
+                  {/* Totals Display */}
+                  {filteredPayments.length > 0 && (
+                    <div className="mb-3" style={{ color: '#333333' }}>
+                      <strong>Total Contribution (filtered): {filteredTotal}</strong> | 
+                      <strong> Total Amount (filtered): ₹{totalAmount.toFixed(2)}</strong>
+                    </div>
+                  )}
+
                   <nav>
                     <ul className="pagination justify-content-center">
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
